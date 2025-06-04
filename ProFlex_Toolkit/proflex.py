@@ -1,18 +1,19 @@
-# Global Imports
+ # Global Imports
 
 import numpy as np
-import os
-
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import os, csv, pickle
 from prody import parsePDB, ANM, calcSqFlucts
-
-import pickle
 from collections import defaultdict
 from itertools import islice
 
 from Bio.PDB import PDBParser, Polypeptide, Superimposer, CaPPBuilder
-from Bio import Align
-from Bio import pairwise2
+from Bio import Align, pairwise2
 from Bio.pairwise2 import format_alignment
+
+
 
 try:
     import pymol2
@@ -20,7 +21,6 @@ except ImportError:
     pymol2 = None
     print("Pymol2 is not available which may be a consequence of failed pip installation")
     print("You may need to install pymol via a specific wheel. Please consult the github repo for instructions.")
-
 
 class ProFlex:
     # Proflex empirically defined percentiles from global binning
@@ -39,6 +39,18 @@ class ProFlex:
     ]
 
     ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+    SUBSTITUTION_MATRIX, ROWS, COLUMNS = [], [], []
+
+    with open('proflex_substitution_matrix.csv', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        COLUMNS = next(reader)[1:]
+        for row in reader:
+            ROWS.append(row[0])
+            numeric_row = [float(cell) for cell in row[1:] if cell.strip() != '']
+            SUBSTITUTION_MATRIX.append(numeric_row)
+
+    SUBSTITUTION_MATRIX = np.array(SUBSTITUTION_MATRIX)
 
     def __init__(self):
         """Initialize the ProFlex class."""
@@ -84,7 +96,7 @@ class ProFlex:
 
     def decode_sequence(self, alphabet_sequence):   # note that percentile centre points are used as values in decoding
         """
-        Derive scaled RMSF from ProFlex 
+        Derive scaled RMSF from ProFlex
         """
         return self.backtranslate_to_values(alphabet_sequence)
 
@@ -155,7 +167,22 @@ class ProFlex:
         rmsf_dict = {protein.getTitle(): rmsf.tolist()}  # Convert RMSF values to a list
 
         return rmsf_dict
-    
+   
+    def print_substitution_matrix(self):
+        print(self.SUBSTITUTION_MATRIX)
+
+    def visualise_substitution_matrix(self):
+        plt.figure(figsize=(10, 8))
+        plt.imshow(self.SUBSTITUTION_MATRIX, cmap='viridis', aspect='auto')
+        plt.colorbar(label='Log Odds')
+        plt.xticks(ticks=np.arange(len(self.COLUMNS)), labels=self.COLUMNS, rotation=90)
+        plt.yticks(ticks=np.arange(len(self.ROWS)), labels=self.ROWS)
+        plt.xlabel('')
+        plt.ylabel('')
+        plt.title('ProFlex Substitution Matrix')
+        plt.tight_layout()
+        plt.show()
+   
 class NGramDatabase:
     def __init__(self, n=5):
         self.ngram_database = defaultdict(list)
@@ -191,11 +218,11 @@ class NGramDatabase:
         """Save the n-gram database and multifasta file to the specified directory."""
         os.makedirs(directory_path, exist_ok=True)
         self.data_dir = directory_path
-        
+       
         # Save the n-gram database
         with open(os.path.join(directory_path, 'ngram_database.pkl'), 'wb') as file:
             pickle.dump(self.ngram_database, file)
-        
+       
         # Save the multifasta file
         with open(os.path.join(directory_path, 'multifasta.fasta'), 'w') as file:
             for seq_id, sequence in self.sequence_map.items():
@@ -208,7 +235,7 @@ class NGramDatabase:
         # Load the n-gram database
         with open(os.path.join(directory_path, 'ngram_database.pkl'), 'rb') as file:
             self.ngram_database = pickle.load(file)
-        
+       
         # Load the multifasta file
         self.sequence_map = {}
         with open(os.path.join(directory_path, 'multifasta.fasta'), 'r') as file:
@@ -248,7 +275,7 @@ class NGramDatabase:
     def get_sequence(self, seq_id):
         """Retrieve a sequence by its ID."""
         return self.sequence_map.get(seq_id, None)
-    
+   
 class PDBAligner:
     def __init__(self, pdb_file1: str, pdb_file2: str):
         self.pdb_file1 = pdb_file1
@@ -412,8 +439,8 @@ class PDBAligner:
                     margin-top: 1em;
                 }}
                 .image-container {{
-                    display: flex; 
-                    flex-wrap: wrap; 
+                    display: flex;
+                    flex-wrap: wrap;
                     gap: 20px;
                     margin-bottom: 20px;
                 }}
@@ -502,7 +529,7 @@ class ProFlexQuery:
 
         top_hit_id, score, proflex_sequence = top_hits[0]  # Get the top hit's sequence ID
         print(f"Top hit found: {top_hit_id}")
-        
+       
 
         # Step 3: Fetch the PDB model of the top hit
         top_hit_pdb_file = os.path.join(self.database.data_dir, 'PDB', f"{top_hit_id}")
@@ -529,9 +556,130 @@ class ProFlexQuery:
         print(f"Results saved to {output_html_path}")
 
 
-# Example usage:
-if __name__ == "__main__":
-    pq = ProFlexQuery("/media/damian/PDB_DB/ProFlex_Program/ngram_data")
-    pq.query_pdb("test1.pdb")
-    #pdb_aligner = PDBAligner("test1.pdb", "test2.pdb")
-    #pdb_aligner.write_html_output("aligned_output.html", "aligned_structures.png")
+class ProFlex_Aligner:
+    def __init__(self, matrix_path, gap_penalty=-5):
+        # Load substitution matrix
+        self.matrix_df = pd.read_csv(matrix_path, index_col=0)
+        self.sub_matrix = self.matrix_df.to_dict()
+        self.gap_penalty = gap_penalty
+
+    def needleman_wunsch(self, seq1, seq2):
+        m, n = len(seq1), len(seq2)
+        score_matrix = np.zeros((m + 1, n + 1))
+        traceback = np.zeros((m + 1, n + 1), dtype="object")
+
+        
+        for i in range(1, m + 1):
+            score_matrix[i][0] = i * self.gap_penalty
+            traceback[i][0] = 'up'
+        for j in range(1, n + 1):
+            score_matrix[0][j] = j * self.gap_penalty
+            traceback[0][j] = 'left'
+
+        # fill matrix for alignment
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                match_score = self.sub_matrix.get(seq1[i-1], {}).get(seq2[j-1], self.gap_penalty)
+                diag = score_matrix[i-1][j-1] + match_score
+                up = score_matrix[i-1][j] + self.gap_penalty
+                left = score_matrix[i][j-1] + self.gap_penalty
+
+                max_score = max(diag, up, left)
+                score_matrix[i][j] = max_score
+
+                if max_score == diag:
+                    traceback[i][j] = 'diag'
+                elif max_score == up:
+                    traceback[i][j] = 'up'
+                else:
+                    traceback[i][j] = 'left'
+
+        align1, align2 = '', ''
+        i, j = m, n
+        while i > 0 or j > 0:
+            if traceback[i][j] == 'diag':
+                align1 = seq1[i-1] + align1
+                align2 = seq2[j-1] + align2
+                i -= 1
+                j -= 1
+            elif traceback[i][j] == 'up':
+                align1 = seq1[i-1] + align1
+                align2 = '-' + align2
+                i -= 1
+            elif traceback[i][j] == 'left':
+                align1 = '-' + align1
+                align2 = seq2[j-1] + align2
+                j -= 1
+
+        alignment_score = score_matrix[m][n]
+        return align1, align2, alignment_score
+
+    def print_alignment(self, align1, align2):
+        """basic CLI output"""
+        line1 = f"target  0 {align1} {len(align1)}"
+        line2 = "         "
+        for a, b in zip(align1, align2):
+            if a == b:
+                line2 += '|'
+            elif a == '-' or b == '-':
+                line2 += ' '
+            else:
+                line2 += '.'
+        line3 = f"query   0 {align2} {len(align2)}"
+        print(line1)
+        print(line2)
+        print(line3)
+
+    def plot_alignment_heatmap(self, align1, align2, output_path="alignment_heatmap.png"):
+        "visual output incorporating log odds scores"
+        n = len(align1)
+        scores = []
+
+        for a, b in zip(align1, align2):
+            if a == "-" or b == "-":
+                scores.append(0)
+            else:
+                scores.append(self.sub_matrix.get(a, {}).get(b, self.gap_penalty))
+
+        # Build annotation matrix
+        annotations = np.array([list(align1), list(align2)])
+
+        cmap = sns.diverging_palette(240, 10, as_cmap=True)
+
+        plt.figure(figsize=(n/2, 1.5))
+        sns.heatmap(
+            np.tile(scores, (2,1)),  # duplicate scores for two rows
+            cmap=cmap,
+            cbar=True,
+            xticklabels=list(range(1, n+1)),
+            yticklabels=["target", "query"],
+            linewidths=0.5,
+            linecolor="gray",
+            annot=annotations,
+            fmt="",
+            annot_kws={"size": 10, "color": "black"},
+            vmin=self.matrix_df.min().min(),
+            vmax=self.matrix_df.max().max()
+        )
+
+        plt.title("Alignment Score Heatmap")
+        plt.xlabel("Alignment Position")
+        plt.ylabel("")
+        plt.yticks(rotation=0)
+        plt.tight_layout()
+        plt.savefig(output_path, dpi=300)
+        plt.close()
+        print(f"Alignment heatmap saved to {output_path}")
+    
+    def run_alignment(self, seq1, seq2):
+        align1, align2, score = self.needleman_wunsch(seq1, seq2)
+        self.print_alignment(align1, align2)
+        print(f"Alignment score: {score}")
+        self.plot_alignment_heatmap(align1, align2, "ProFlex_alignment.png")
+
+
+def main():
+    print("Welcome to the ProFlex Toolkit")
+
+if __name__ == '__main__':
+    main()

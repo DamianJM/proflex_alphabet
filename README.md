@@ -16,7 +16,8 @@
     - [Creating ProFlex Databases](#Databases)
     - [Precompiled Database Access](#Precompiled-Database-Access)
     - [ProFlex Translation](#Translation)
-    - [ProFlex Sequence Alignments](#ProFlex Sequence Alignments)
+    - [ProFlex Sequence Alignments](#ProFlex-Sequence-Alignments)
+    - [Pre-compiled Binaries](#Precompiled-Binaries)
 
 # INSTALLATION
 
@@ -26,6 +27,12 @@ pip install proflex
 ```
 
 Installation should take no longer than a minute.
+
+Alternatively you can install via conda:
+
+```bash
+conda install -c DamianJM proflex
+```
 
 If problems occur during installation or specifically with structural comparisons this is almost certainly due to pymol2 installation issues. In those cases, please proceed to pymol installation via freely available wheels by following these instructions: https://github.com/cgohlke/pymol-open-source-wheels?tab=readme-ov-file
 
@@ -48,9 +55,11 @@ This provides a report output in HTML format similar to the below:
 Structural and sequence alignments are provided along with top ProFlex query hits and a backtranslated RMSF value comparison with that of the top query hit.
 
 As part of this repo we provide a precompile SWISS-PROT proflex database that can be downloaded. To prepare this database for full use, PDB structures need to be downloaded to the PDB subdirectory like so:
+
 ```bash
 wget https://ftp.ebi.ac.uk/pub/databases/alphafold/latest/swissprot_pdb_v4.tar
 ```
+
 Simply unpack all structures into the PDB subdirectory of the database. The PDB filenames are referenced by the database and can be retrieved when queries are performed.
 
 ### Databases
@@ -142,5 +151,19 @@ aligner = ProFlex_Aligner("proflex_substitution_matrix.csv", gap_penalty=-5)
 ```
 
 We are working towards incorporating this as part of larger database querying.
+
+To easily access and visualise the matrix values you can do the following (raw matrix is downloaded with this repository):
+
+```python
+from proflex import ProFlex as pf
+pq = pf()
+pq.print_substitution_matrix() # print raw values to screen
+pq.visualise_substitution_matrix() # viridis themed visualisation of the matrix
+
+```
+
+### Pre-compiled Binaries
+
+Please check regularly for availability of pre-compiled binaries for using the toolkit without installation.
 
 ## A ProFlex online application for direct PDB submission is under development and will be made available soon!

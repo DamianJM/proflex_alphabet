@@ -133,7 +133,7 @@ Alignment score: 63.82035167061876
 Additionally, a visual representation is output to file that displays a coloured alignment better highlighting per residue scores in accordance with
 the substitution matrix. For the provided example this looks like the below:
 
-<img src="https://raw.githubusercontent.com/DamianJM/proflex_alphabet/main/img/ProFlex_alignment.png" width="1200" height="200"></img> 
+<img src="https://raw.githubusercontent.com/DamianJM/proflex_alphabet/main/img/ProFlex_alignment.png" width="1400" height="200"></img> 
 
 If desired the gap penalty for alignments is modifiable like so:
 

@@ -126,10 +126,9 @@ This will provide a CLI output with alignment score like so:
 target  0 xxygcggZggATGCGGCGCGAggagtaY 28
           ||.||||.||. ||||||.||||||||.
 query   0 xxxgcggagga-GCGGCGDGAggagtaZ 28
-```
-
 
 Alignment score: 63.82035167061876
+```
 
 Additionally, a visual representation is output to file that displays a coloured alignment better highlighting per residue scores in accordance with
 the substitution matrix. For the provided example this looks like the below:

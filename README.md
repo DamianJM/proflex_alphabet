@@ -17,7 +17,7 @@
     - [Precompiled Database Access](#Precompiled-Database-Access)
     - [ProFlex Translation](#Translation)
     - [ProFlex Sequence Alignments](#ProFlex-Sequence-Alignments)
-    - [Pre-compiled Binaries](#Precompiled-Binaries)
+    - [Pre-compiled Binaries](#Pre-compiled-Binaries)
 
 # INSTALLATION
 

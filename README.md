@@ -142,7 +142,7 @@ Alignment score: 63.82035167061876
 Additionally, a visual representation is output to file that displays a coloured alignment better highlighting per residue scores in accordance with
 the substitution matrix. For the provided example this looks like the below:
 
-<img src="https://raw.githubusercontent.com/DamianJM/proflex_alphabet/main/img/ProFlex_alignment.png" width="1400" height="200"></img> 
+<img src="https://raw.githubusercontent.com/DamianJM/proflex_alphabet/main/img/ProFlex_alignment.png" width="1400" height="150"></img> 
 
 If desired the gap penalty for alignments is modifiable like so:
 
@@ -166,4 +166,8 @@ pq.visualise_substitution_matrix() # viridis themed visualisation of the matrix
 
 Please check regularly for availability of pre-compiled binaries for using the toolkit without installation.
 
-## A ProFlex online application for direct PDB submission is under development and will be made available soon!
+Proflex_Aligner: A binary that allows for ProFlex sequence alignment using ProFlex substitution matrices.
+
+ProFlex_Translator: A binary for RMSF to ProFlex translation
+
+
